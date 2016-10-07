@@ -1,13 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Satori\Api\Lib\EntityConfigurator;
+namespace Satori\Api\Lib\Configurator;
 
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
 use Doctrine\Common\Persistence\Mapping\MappingException;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMInvalidArgumentException;
-use Satori\Api\Lib\Configurator\VirtualField;
 use Satori\Api\Lib\EntityContext;
 use Satori\CatchException\Lib\CatchExceptionTrait;
 use Satori\CatchException\Lib\Exception\CatchResponseException;

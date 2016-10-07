@@ -20,6 +20,6 @@ class SerializerTest extends WebTestCase
 
         $data = $serializer->toArray($user, ['test']);
 
-        static::assertEquals([], $data);
+        static::assertEquals(['id' => null, 'email' => 'molodyko13@gmail.com'], $data);
     }
 }

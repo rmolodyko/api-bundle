@@ -88,6 +88,6 @@ abstract class AbstractApiController extends Controller
      */
     public function responseEntity($data, array $groups)
     {
-        return $this->response($this->get('satori.api.serializer')->toArray($data, $groups));
+        return $this->response($this->get('satori.api.serializer.serializer')->toArray($data, $groups));
     }
 }

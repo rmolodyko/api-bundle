@@ -1,5 +1,20 @@
 services:
-    kernel.listener.api_exception_listener:
-      class: Satori\CatchException\Lib\CatchExceptionListener
-      tags:
-        - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
+    satori.api.serializer:
+        class: Satori\Api\Lib\Serializer
+        arguments: ["@jms_serializer", "@doctrine.orm.entity_manager"]
+
+    satori.api.entity_context:
+        class: Satori\Api\Lib\EntityContext
+        shared: false
+
+    satori.api.entity_configurator:
+        shared: false
+        class: Satori\Api\Lib\EntityConfigurator
+        arguments: ["@doctrine.orm.entity_manager", "@validator", "@satori.api.entity_context"]
+
+    satori.api.abstract_api_controller:
+        class: Satori\Api\Lib\AbstractApiController
+        abstract: true
+        arguments: ["@request_stack"]
+        calls:
+          - [setContainer, ['@service_container']]

@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace Satori\CatchException\DependencyInjection;
+namespace Satori\Api\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
@@ -9,10 +9,8 @@ use Symfony\Component\DependencyInjection\Loader;
 
 /**
  * This is the class that loads and manages your bundle configuration.
- *
- * @link http://symfony.com/doc/current/cookbook/bundles/extension.html
  */
-class CatchExceptionExtension extends Extension
+class SatoriApiExtension extends Extension
 {
     /**
      * {@inheritdoc}

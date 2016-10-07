@@ -1,0 +1,23 @@
+{
+    "name": "sator1/api",
+    "type": "library",
+    "license": "MIT",
+    "description": "Api",
+    "keywords": ["api", "symfony", "bundle"],
+    "minimum-stability": "dev",
+    "authors": [
+        {"name": "Ruslan Molodyko", "email": "molodyko13@gmail.com"}
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+		"sator1/catch-exception": "dev",
+        "phpunit/phpunit": "5.5.*"
+    },
+    "autoload": {
+        "psr-4" : {
+            "Satori\\Api\\" : "src/"
+        }
+    }
+}

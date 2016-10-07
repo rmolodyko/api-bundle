@@ -1,0 +1,5 @@
+services:
+    kernel.listener.api_exception_listener:
+      class: Satori\CatchException\Lib\CatchExceptionListener
+      tags:
+        - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }

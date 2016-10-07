@@ -58,6 +58,7 @@ abstract class AbstractApiController extends Controller
      * @param Request $request
      * @param bool $asArray
      * @return mixed
+     * @throws \LogicException
      */
     public function getData(Request $request, $asArray = false)
     {
@@ -73,19 +74,7 @@ abstract class AbstractApiController extends Controller
      */
     public function response($response)
     {
-//        $type = $this->getRequest()->headers->get('Accept', 'application/json');
-//        $this->error($type !== 'application/json', sprintf('Type %s not implemented', $type));
-        return new JsonResponse(
-            $response,
-            200,
-            // Allow cross domain ajax request
-            [
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Request-Headers' => '*',
-                'Access-Control-Request-Methods' => 'POST, GET, OPTIONS',
-                'Access-Control-Max-Age' => 1728000,
-            ]
-        );
+        return new JsonResponse($response, 200);
     }
 
     /**

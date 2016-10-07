@@ -17,7 +17,8 @@
     },
     "autoload": {
         "psr-4" : {
-            "Satori\\Api\\" : "src/"
+            "Satori\\Api\\" : "src/",
+            "Satori\\Api\\Tests\\" : "tests/"
         }
     }
 }

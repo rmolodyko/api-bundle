@@ -1,12 +1,14 @@
 <?php declare(strict_types=1);
 
-namespace Satori\Api\Lib;
+namespace Satori\Api\Lib\EntityConfigurator;
 
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
 use Doctrine\Common\Persistence\Mapping\MappingException;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMInvalidArgumentException;
+use Satori\Api\Lib\Configurator\VirtualField;
+use Satori\Api\Lib\EntityContext;
 use Satori\CatchException\Lib\CatchExceptionTrait;
 use Satori\CatchException\Lib\Exception\CatchResponseException;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -30,6 +32,9 @@ class EntityConfigurator
     /** @var EntityContext */
     protected $entityContext;
 
+    /** @var VirtualField */
+    protected $virtualField;
+
     /** @var mixed */
     protected $entity;
 
@@ -39,12 +44,18 @@ class EntityConfigurator
      * @param EntityManager $entityManager
      * @param ValidatorInterface $validator
      * @param EntityContext $context
+     * @param VirtualField $virtualField
      */
-    public function __construct(EntityManager $entityManager, ValidatorInterface $validator, EntityContext $context)
-    {
+    public function __construct(
+        EntityManager $entityManager,
+        ValidatorInterface $validator,
+        EntityContext $context,
+        VirtualField $virtualField
+    ) {
         $this->validator = $validator;
         $this->entityManager = $entityManager;
         $this->entityContext = $context;
+        $this->virtualField = $virtualField;
     }
 
     /**
@@ -92,9 +103,9 @@ class EntityConfigurator
 
         // Get related entities and set their data
         foreach ($metadata->getAssociationNames() as $fieldName) {
-            if (array_key_exists($fieldName, $data) || $this->hasRelationField($fieldName)) {
+            if (array_key_exists($fieldName, $data) || $this->virtualField->hasRelationField($fieldName)) {
                 $className = $metadata->getAssociationTargetClass($fieldName);
-                foreach ($this->relationField($fieldName) as $dataFieldName) {
+                foreach ($this->virtualField->relationField($fieldName) as $dataFieldName) {
                     $childErrors = $this->fill($data[$dataFieldName], $className);
                     if (count($childErrors)) {
                         $errors[$fieldName] = $childErrors;
@@ -105,20 +116,6 @@ class EntityConfigurator
 
         // Get errors
         return array_merge($errors, $this->validateEntity($entity));
-    }
-
-    protected function relationField($fieldName)
-    {
-        $relations = $this->getEntityContext()->getRelations();
-        if (array_key_exists($fieldName, $relations)) {
-            return $relations[$fieldName];
-        }
-        return [$fieldName];
-    }
-
-    protected function hasRelationField($fieldName)
-    {
-        return array_key_exists($fieldName, $this->getEntityContext()->getRelations());
     }
 
     /**

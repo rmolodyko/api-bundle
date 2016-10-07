@@ -10,7 +10,7 @@ namespace Satori\Api\Lib;
 class EntityContext
 {
     /** @var bool True if entity has error and need throw exception otherwise not */
-    protected $throwExceptionOnError = false;
+    protected $throwExceptionOnError = true;
 
     /** @var array */
     protected $relations = [];

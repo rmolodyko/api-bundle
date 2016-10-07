@@ -4,4 +4,4 @@
  */
 
 /** Set composer autoloader */
-require __DIR__ . '/../../autoload.php';
+require __DIR__ . '/../../../app/autoload.php';

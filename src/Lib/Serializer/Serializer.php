@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Satori\Api\Lib;
+namespace Satori\Api\Lib\Serializer;
 
 use Doctrine\ORM\EntityManager;
 use JMS\Serializer\SerializationContext;

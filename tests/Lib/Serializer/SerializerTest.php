@@ -2,12 +2,24 @@
 
 namespace Satori\Api\Tests\Lib\Serializer;
 
-use PHPUnit\Framework\TestCase;
+use Satori\Api\Lib\Serializer\Serializer;
+use Satori\Api\Tests\Assets\Entity\User;
+use Satori\Api\Tests\WebTestCase;
 
-class SerializerTest extends TestCase
+class SerializerTest extends WebTestCase
 {
     public function testOnKernelException()
     {
-        static::assertTrue(true);
+        $user = new User();
+        $user->setEmail('molodyko13@gmail.com');
+
+        $serializer = new Serializer(
+            $this->get('serializer'),
+            $this->get('doctrine.orm.entity_manager')
+        );
+
+        $data = $serializer->toArray($user, ['test']);
+
+        static::assertEquals([], $data);
     }
 }

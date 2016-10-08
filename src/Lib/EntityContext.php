@@ -15,6 +15,9 @@ class EntityContext
     /** @var array */
     protected $relations = [];
 
+    /** @var array */
+    protected $disableRelationList = [];
+
     /**
      * @param boolean $throwExceptionOnError
      * @return EntityContext
@@ -51,5 +54,24 @@ class EntityContext
         $this->relations = $relations;
 
         return $this;
+    }
+
+    /**
+     * @param string $disableRelation
+     * @return EntityContext
+     */
+    public function addDisableRelationList(string $disableRelation): EntityContext
+    {
+        $this->disableRelationList[] = $disableRelation;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getDisableRelationList(): array
+    {
+        return $this->disableRelationList;
     }
 }

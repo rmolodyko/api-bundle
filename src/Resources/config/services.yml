@@ -19,6 +19,6 @@ services:
     satori.api.abstract_api_controller:
         class: Satori\Api\Lib\AbstractApiController
         abstract: true
-        arguments: ["@request_stack"]
+        arguments: ["@request_stack", "@satori.api.configurator.entity_configurator"]
         calls:
           - [setContainer, ['@service_container']]

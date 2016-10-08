@@ -55,6 +55,8 @@ class EntityConfigurator
         $this->entityManager = $entityManager;
         $this->entityContext = $context;
         $this->virtualField = $virtualField;
+
+        $this->virtualField->setEntityContext($context);
     }
 
     /**
@@ -62,30 +64,38 @@ class EntityConfigurator
      *
      * @param $data
      * @param $className
+     * @param boolean $create When need create the entity
      * @return array
      * @throws \InvalidArgumentException
      * @throws \ReflectionException
      * @throws MappingException
      */
-    public function fill($data, $className)
+    public function fill($data, $className, $create)
     {
         $errors = [];
 
         /** @var ClassMetadata $metadata */
         $metadata = $this->entityManager->getMetadataFactory()->getMetadataFor($className);
-        $id = [];
-        // Get ids of entity
-        foreach ($metadata->getIdentifierFieldNames() as $identifier) {
-            if (!array_key_exists($identifier, $data)) {
-                throw new \InvalidArgumentException('Missing identifier in data');
-            }
-            $id[$identifier] = $data[$identifier];
-            // Remove id from data for correct instantiating the field values
-            unset($data[$identifier]);
-        }
 
-        // Find entity
-        $entity = $this->entityManager->getRepository($metadata->getName())->findOneBy($id);
+        // Find or create new entity
+        if (!$create) {
+
+            $id = [];
+            // Get ids of entity
+            foreach ($metadata->getIdentifierFieldNames() as $identifier) {
+                if (!array_key_exists($identifier, $data)) {
+                    throw new \InvalidArgumentException('Missing identifier in data');
+                }
+                $id[$identifier] = $data[$identifier];
+                // Remove id from data for correct instantiating the field values
+                unset($data[$identifier]);
+            }
+
+            // Find entity
+            $entity = $this->entityManager->getRepository($metadata->getName())->findOneBy($id);
+        } else {
+            $entity = new $className();
+        }
 
         if (!$this->entity) {
             $this->entity = $entity;
@@ -102,10 +112,41 @@ class EntityConfigurator
 
         // Get related entities and set their data
         foreach ($metadata->getAssociationNames() as $fieldName) {
-            if (array_key_exists($fieldName, $data) || $this->virtualField->hasRelationField($fieldName)) {
+            if (
+                count($data) &&
+                (array_key_exists($fieldName, $data) || $this->virtualField->hasRelationField($fieldName))
+                && !in_array($fieldName, $this->getEntityContext()->getDisableRelationList(), true)
+            ) {
                 $className = $metadata->getAssociationTargetClass($fieldName);
+                /** @var ClassMetadata $metadataChild */
+                $metadataChild = $this->entityManager->getMetadataFactory()->getMetadataFor($className);
+
                 foreach ($this->virtualField->relationField($fieldName) as $dataFieldName) {
-                    $childErrors = $this->fill($data[$dataFieldName], $className);
+
+                    // Change link to another entity
+                    // It possible when passed field name with id which not the same as before
+                    // FIXME: Each request set new entity fix it for checking existing id
+                    $ids = [];
+                    foreach ($metadataChild->getIdentifierFieldNames() as $identifier) {
+                        // Store primary columns passed from data
+                        if (array_key_exists($identifier, $data[$dataFieldName])) {
+                            $ids[$identifier] = $data[$dataFieldName][$identifier] ?: null;
+                        }
+                    }
+
+                    // If need change link to entity find it and set into parent entity
+                    if (count($ids)) {
+                        // Find entity
+                        $entityChild = $this->entityManager
+                            ->getRepository($metadataChild->getName())
+                            ->findOneBy($ids);
+                        $metadata->setFieldValue($entity, $fieldName, $entityChild);
+                        if ($metadata->getFieldValue($entity, $fieldName) === null) {
+                            continue;
+                        }
+                    }
+
+                    $childErrors = $this->fill($data[$dataFieldName], $className, $create);
                     if (count($childErrors)) {
                         $errors[$fieldName] = $childErrors;
                     }
@@ -163,8 +204,45 @@ class EntityConfigurator
      */
     public function save(array $data, string $className): array
     {
+        return $this->handle($data, $className, false);
+    }
+
+    /**
+     * Fill and create entity
+     *
+     * @param array $data
+     * @param string $className
+     * @return array
+     * @throws ORMInvalidArgumentException
+     * @throws OptimisticLockException
+     * @throws CatchResponseException
+     * @throws MappingException
+     * @throws \InvalidArgumentException
+     * @throws \ReflectionException
+     */
+    public function create(array $data, string $className): array
+    {
+        return $this->handle($data, $className, true);
+    }
+
+    /**
+     * Fill entity
+     *
+     * @param array $data De-Serialized data
+     * @param string $className Class entity name
+     * @param boolean $create Create new or find existing entity
+     * @return array
+     * @throws ORMInvalidArgumentException
+     * @throws OptimisticLockException
+     * @throws CatchResponseException
+     * @throws MappingException
+     * @throws \InvalidArgumentException
+     * @throws \ReflectionException
+     */
+    protected function handle(array $data, string $className, bool $create)
+    {
         // Fill entity
-        $errors = $this->fill($data, $className);
+        $errors = $this->fill($data, $className, $create);
 
         if ($this->getEntityContext()->isThrowExceptionOnError()) {
             // Check errors

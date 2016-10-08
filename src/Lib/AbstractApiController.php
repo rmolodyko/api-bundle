@@ -3,6 +3,7 @@
 namespace Satori\Api\Lib;
 
 use Doctrine\ORM\EntityManager;
+use Satori\Api\Lib\Configurator\EntityConfigurator;
 use Satori\CatchException\Lib\CatchExceptionTrait;
 use Satori\CatchException\Lib\Exception\CatchResponseException;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -25,13 +26,20 @@ abstract class AbstractApiController extends Controller
     protected $requestStack;
 
     /**
+     * @var EntityConfigurator
+     */
+    protected $configurator;
+
+    /**
      * AbstractApiController constructor.
      *
      * @param RequestStack $requestStack
+     * @param EntityConfigurator $entityConfigurator
      */
-    public function __construct(RequestStack $requestStack)
+    public function __construct(RequestStack $requestStack, EntityConfigurator $entityConfigurator)
     {
         $this->requestStack = $requestStack;
+        $this->configurator = $entityConfigurator;
     }
 
     /**
@@ -89,5 +97,79 @@ abstract class AbstractApiController extends Controller
     public function responseEntity($data, array $groups)
     {
         return $this->response($this->get('satori.api.serializer.serializer')->toArray($data, $groups));
+    }
+
+    /**
+     * Create entity by de-serialized data
+     *
+     * @param array|Request $data
+     * @param string $className
+     * @return array Filling errors
+     * @throws \LogicException
+     * @throws \Doctrine\ORM\ORMInvalidArgumentException
+     * @throws \Doctrine\Common\Persistence\Mapping\MappingException
+     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws \InvalidArgumentException
+     * @throws \ReflectionException
+     * @throws \Satori\CatchException\Lib\Exception\CatchResponseException
+     */
+    public function createEntity($data, string $className): array
+    {
+        return $this->getConfigurator()->create($this->handleData($data), $className);
+    }
+
+    /**
+     * Save entity by de-serialized data
+     *
+     * @param array|Request $data
+     * @param string $className
+     * @return array Filling errors
+     * @throws \LogicException
+     * @throws \Doctrine\ORM\ORMInvalidArgumentException
+     * @throws \Doctrine\Common\Persistence\Mapping\MappingException
+     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws \InvalidArgumentException
+     * @throws \ReflectionException
+     * @throws \Satori\CatchException\Lib\Exception\CatchResponseException
+     */
+    public function saveEntity($data, string $className): array
+    {
+        return $this->getConfigurator()->save($this->handleData($data), $className);
+    }
+
+    /**
+     * Get de-serialized data
+     *
+     * @param array|Request $data
+     * @return array
+     * @throws \LogicException
+     */
+    protected function handleData($data): array
+    {
+        // Check if its request object then de-serialize and return the data
+        if ($data instanceof Request) {
+            return $this->getData($data, true);
+        }
+        return $data;
+    }
+
+    /**
+     * Get entity configurator
+     *
+     * @return EntityConfigurator
+     */
+    public function getConfigurator(): EntityConfigurator
+    {
+        return $this->configurator;
+    }
+
+    /**
+     * Get entity context
+     *
+     * @return EntityContext
+     */
+    protected function getEntityContext(): EntityContext
+    {
+        return $this->getConfigurator()->getEntityContext();
     }
 }

@@ -5,8 +5,10 @@ namespace Satori\Api\Lib\Configurator;
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
 use Doctrine\Common\Persistence\Mapping\MappingException;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadataInfo;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMInvalidArgumentException;
+use Doctrine\ORM\PersistentCollection;
 use Satori\Api\Lib\EntityContext;
 use Satori\CatchException\Lib\CatchExceptionTrait;
 use Satori\CatchException\Lib\Exception\CatchResponseException;
@@ -78,18 +80,17 @@ class EntityConfigurator
         $metadata = $this->entityManager->getMetadataFactory()->getMetadataFor($className);
 
         // Find or create new entity
-        if (!$create) {
-
-            $id = [];
-            // Get ids of entity
-            foreach ($metadata->getIdentifierFieldNames() as $identifier) {
-                if (!array_key_exists($identifier, $data)) {
-                    throw new \InvalidArgumentException('Missing identifier in data');
-                }
+        $id = [];
+        // Get ids of entity
+        foreach ($metadata->getIdentifierFieldNames() as $identifier) {
+            if (array_key_exists($identifier, $data)) {
                 $id[$identifier] = $data[$identifier];
                 // Remove id from data for correct instantiating the field values
                 unset($data[$identifier]);
             }
+        }
+
+        if (!$create && count($id) > 0) {
 
             // Find entity
             $entity = $this->entityManager->getRepository($metadata->getName())->findOneBy($id);
@@ -136,14 +137,25 @@ class EntityConfigurator
 
                     // If need change link to entity find it and set into parent entity
                     if (count($ids)) {
+                        $info = $typeRelation = $metadata->getAssociationMapping($fieldName);
+                        $isMultiple = $info['type'] === ClassMetadataInfo::ONE_TO_MANY;
                         // Find entity
                         $entityChild = $this->entityManager
                             ->getRepository($metadataChild->getName())
                             ->findOneBy($ids);
-                        $metadata->setFieldValue($entity, $fieldName, $entityChild);
-                        if ($metadata->getFieldValue($entity, $fieldName) === null) {
-                            continue;
+
+                        $value = $entityChild;
+                        if ($isMultiple) {
+                            if (null === $value = $metadata->getFieldValue($entity, $fieldName)) {
+                                continue;
+                            }
+                            if (is_array($value)) {
+                                $value = array_merge($value, $entityChild);
+                            } elseif ($value instanceof PersistentCollection) {
+                                $value->add($entityChild);
+                            }
                         }
+                        $metadata->setFieldValue($entity, $fieldName, $value);
                     }
 
                     $childErrors = $this->fill($data[$dataFieldName], $className, $create);
@@ -241,12 +253,14 @@ class EntityConfigurator
      */
     protected function handle(array $data, string $className, bool $create)
     {
+        $this->entity = null;
+
         // Fill entity
         $errors = $this->fill($data, $className, $create);
 
         if ($this->getEntityContext()->isThrowExceptionOnError()) {
             // Check errors
-            $this->error(count($errors) === 0, $errors);
+            $this->need(count($errors) === 0, $errors);
         }
 
         // Save
